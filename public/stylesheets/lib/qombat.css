@@ -1,0 +1,31 @@
+/* resetting */
+table.qombat_framed,
+table.qombat_framed > tbody,
+table.qombat_framed > tbody > tr,
+table.qombat_framed > tbody > tr > td {
+  padding: 0;
+  margin: 0;
+  border: none;
+  /*font-size: 1px;*/ /*this solves the little gap below the image in firefox, but sometimes makes the caption tiny*/
+}
+.qombat_framed {
+  border: 1px solid grey;
+}
+table.qombat_framed > tbody > tr > td {
+  vertical-align: middle;
+}
+
+
+
+/* resetting */
+table.qombat_captioned,
+table.qombat_captioned > tbody,
+table.qombat_captioned > tbody > tr,
+table.qombat_captioned > tbody > tr > td {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+table.qombat_captioned > tbody > tr > td {
+  text-align: center;
+}

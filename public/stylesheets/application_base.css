@@ -1,0 +1,76 @@
+/* custom base - adapated from YUI's base.css */
+
+body {
+	/* For breathing room between content and viewport. */
+	margin:10px;
+}
+
+h1 {
+	/* 18px via YUI Fonts CSS foundation. */
+	font-size: 138.5%;
+}
+
+h2 {
+	/* 16px via YUI Fonts CSS foundation. */
+	font-size: 123.1%;
+}
+
+h3 {
+	/* 14px via YUI Fonts CSS foundation. */
+	font-size: 108%;
+}
+
+h1,h2,h3,h4,h5,h6,strong,dt {
+	/* Bringing boldness back to headers and the strong element. */
+	font-weight: bold;
+}
+
+em {
+	/* Bringing italics back to the em element. */
+	font-style: italic;
+}
+
+th,td {
+	/* Borders and padding to make the table readable. */
+	border: 1px solid #000;
+	padding: .5em;
+}
+
+th {
+	/* Distinguishing table headers from data cells. */
+	font-weight: bold;
+	text-align: center;
+}
+
+caption {
+	/* Coordinated margin to match cell's padding. */
+	margin-bottom: .5em;
+	/* Centered so it doesn't blend in to other content. */
+	text-align: center;
+}
+
+sup {
+	/* to preserve line-height and selector appearance */
+	vertical-align: super;
+}
+
+sub {
+	/* to preserve line-height and selector appearance */
+	vertical-align: sub;
+}
+
+p,
+fieldset,
+table,
+pre {
+	/* So things don't run into each other. */
+	margin-bottom: 1em;
+}
+/* Opera requires 1px of passing to render with contemporary native chrome */
+button,
+input[type="checkbox"],
+input[type="radio"],
+input[type="reset"],
+input[type="submit"] {
+	padding:1px;
+}

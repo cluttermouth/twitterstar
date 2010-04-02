@@ -1,0 +1,38 @@
+#header, #sign_in{
+  background-color: #ABCABC;
+  padding: 1em;
+}
+
+#loading{
+  margin-right: 1em;
+}
+
+.sign_in_input {
+  float: left;
+  margin-right: 2em;
+}
+
+.nav_link {
+  float: right;
+  margin-left: 1em;
+}
+
+.status{
+  background-color: #EEFEEF;
+  margin: 1em;
+  padding: 1em;
+}
+
+.status_profile_image{
+  float: left;
+}
+
+.status_username{
+  margin-right: 0.5em;
+  font-weight: bold;
+}
+
+.status_body{
+  margin-left: 4em;
+}
+
