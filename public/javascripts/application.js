@@ -55,6 +55,7 @@ ts.model = (function (){
       proxy.set('current_page', 'home');
       seed.check_statuses();
     }
+    setInterval(proxy.runner('check_statuses'), 6000);
   };
 
   seed.sign_in = function (){
@@ -185,7 +186,7 @@ ts.view.statuses = function (){
 };
 
 ts.view.status = function (status){
-  if( ts.view.status.results[status.id] ){ return ts.view.statuses.results[status.id]; }
+  if( ts.view.status.results[status.id] ){ return ts.view.status.results[status.id]; }
 
   var result = ts.view.status.results[status.id] = T.div({'class':'status'},
     T.img({'class':'status_profile_image', 'src':status.user.profile_image_url}),
