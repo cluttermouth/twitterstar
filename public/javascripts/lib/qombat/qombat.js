@@ -705,6 +705,7 @@ if( QOMBAT === undefined ){
 
   Q.is_similar = function( apple, orange, options ){ return Boolean(Q.compare( apple, orange, options ).match); };
 
+  // todo: rename this function to compare_deep and make a compare function that can do it shallowly
   // note!! this function cannot catch the inequivalency of functions that have acces to different variable scopes
   Q.compare = function( apple, orange, options ){
     Q.constrain('at_least', [arguments, 2]);
@@ -886,6 +887,7 @@ if( QOMBAT === undefined ){
   };
 
   Q.error = function( message ){ // output error and stop page
+    Q.log(Q.call_stack());
     message = 'Error: ' + message;
     alert(message);
     throw message;

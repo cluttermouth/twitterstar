@@ -29,7 +29,7 @@ ts.model = (function (){
   // the proxy acts as an interface to the public, and is ultimately returned by this anonymous function
   // this allows the views to subscribe for updates to the model
   var proxy = Q.proxy(seed);
-  seed.home_statuses = [];
+  seed.statuses = [];
 
   seed.get_username     = function (){
     return $.cookieJSON('username');
@@ -52,12 +52,18 @@ ts.model = (function (){
 
   seed.init = function (){
     if(proxy.get('is_signed_in')){
-      seed.check_home_timeline();
+      proxy.set('current_page', 'home');
+      seed.check_statuses();
     }
   };
 
   seed.sign_in = function (){
-    seed.check_home_timeline();
+    ts.api('statuses/home_timeline', function (response){
+      proxy.set('sign_in_failed', false);
+      proxy.set('is_signed_in', true);
+    }, function(response){
+      proxy.set('sign_in_failed', true);
+    });
   };
 
   seed.sign_out = function (){
@@ -66,15 +72,19 @@ ts.model = (function (){
     proxy.set('is_signed_in', null);
   };
 
-  seed.check_home_timeline = function (success_callback, failure_callback){
-    ts.api('statuses/home_timeline', function (response){
-      proxy.set('is_signed_in', true);
-      proxy.set('home_statuses', response);
+  seed.check_statuses = function (success_callback, failure_callback){
+    var call;
+    if( proxy.get('current_page') === 'home' ){
+      call = 'statuses/home_timeline';
+    }else{
+      return;
+    }
+    ts.api(call, function (response){
+      proxy.set('statuses', response);
       if(success_callback){
         success_callback(response);
       }
     },function (response){
-      console.log(response);
       if(failure_callback){
         failure_callback(response);
       }
@@ -91,16 +101,19 @@ ts.view = {};
 
 ts.view.main = function (){
   if( ts.view.main.result ){ return ts.view.main.result; }
+
   var result = ts.view.main.result = T.div({'id':'main'},
     ts.view.sign_in(),
     ts.view.header(),
     ts.view.statuses()
   );
+
   return result;
 };
 
 ts.view.sign_in = function (){
   if( ts.view.sign_in.result ){ return ts.view.sign_in.result; }
+
   var result = ts.view.sign_in.result = K.displayed_when(ts.model, 'is_signed_in', function(val){ return val !== true; },
     K.enterable(ts.model.runner('sign_in'),
       T.div({'id':'sign_in'},
@@ -119,6 +132,9 @@ ts.view.sign_in = function (){
         T.div({'class':'sign_in_input'},
           T.input({'type':'submit', 'value':'Sign in', 'onclick':ts.model.runner('sign_in')})
         ),
+        K.visible_when(ts.model, 'sign_in_failed', function(val){ return val === true; },
+          T.div({'id':'sign_in_failed'}, 'Sorry, try again')
+        ),
         T.clearfix()
       )
     )
@@ -129,6 +145,7 @@ ts.view.sign_in = function (){
 
 ts.view.header = function (){
   if( ts.view.header.result ){ return ts.view.header.result; }
+
   var result = ts.view.header.result = K.displayed_when(ts.model, 'is_signed_in', function(val){ return val === true; },
     T.div({'id':'header'},
       T.div({'class':'nav_link', 'onclick':ts.model.runner('sign_out')},
@@ -137,7 +154,7 @@ ts.view.header = function (){
       T.div({'class':'nav_link', 'onclick':ts.model.runner('show_profile')},
         'Profile'
       ),
-      T.div({'class':'nav_link', 'onclick':ts.controller.runner('show_home')},
+      T.div({'class':'nav_link', 'onclick':ts.controller.runner('on_click_home')},
         'Home'
       ),
       K.visible_when(ts.model, 'loading', function(value){ return value === true; },
@@ -153,9 +170,10 @@ ts.view.header = function (){
 
 ts.view.statuses = function (){
   if( ts.view.statuses.result ){ return ts.view.statuses.result; }
+
   var result = ts.view.statuses.result = K.displayed_when(ts.model, 'is_signed_in', function(val){ return val === true; },
     T.div({'class':'statuses'},
-      K.subscribing_list(ts.model, 'home_statuses', T.ul(),
+      K.subscribing_list(ts.model, 'statuses', T.ul(),
         function (which, status){
           return ts.view.status(status);
         }
@@ -168,6 +186,7 @@ ts.view.statuses = function (){
 
 ts.view.status = function (status){
   if( ts.view.status.results[status.id] ){ return ts.view.statuses.results[status.id]; }
+
   var result = ts.view.status.results[status.id] = T.div({'class':'status'},
     T.img({'class':'status_profile_image', 'src':status.user.profile_image_url}),
     T.div({'class':'status_body'},
@@ -176,6 +195,7 @@ ts.view.status = function (status){
     ),
     T.clearfix()
   );
+
   return result;
 };
 ts.view.status.results = {};
@@ -187,16 +207,12 @@ ts.controller = (function(){
   var proxy = Q.proxy(seed);
 
   seed.on_click_home = function(){
-    model.check_home_timeline();
+    ts.model.run('check_home_timeline');
+    ts.model.set('home_timeline');
   };
 
   return proxy;
 }());
-
-ts.controller.on_click_home = function(){
-  model.check_home_timeline();
-};
-
 
 
 
