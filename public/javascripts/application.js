@@ -21,7 +21,6 @@ or:
       "id":11630327233,
       "profile_image_url":"http://a3.twimg.com/profile_images/56448039/adage_logo_for_twitter_v3_normal.jpg"
     }
-    "created_at":"Mon Apr 05 07:27:52 +0000 2010",
     "text":"Wow, what a cool observer model!"
   }]);
 
@@ -119,6 +118,14 @@ ts.model = (function (){
     });
   };
 
+  seed.update_status = function(){
+    ts.api('POST', 'statuses/update', {'status':proxy.get('new_status')}, function (response){
+      seed.check_statuses();
+    },function (response){
+      alert('Error posting status');
+    });
+  };
+
   seed.show_my_profile = function(){
     proxy.set('current_page', 'profile');
     proxy.set('current_profile', proxy.get('username'));
@@ -172,6 +179,7 @@ ts.view.main = function (){
   var result = ts.view.main.result = T.div({'id':'main'},
     ts.view.sign_in(),
     ts.view.header(),
+    ts.view.status_updater(),
     ts.view.statuses()
   );
 
@@ -206,6 +214,26 @@ ts.view.sign_in = function (){
           T.div({'id':'sign_in_failed'}, 'Sorry, bad combo - try again')
         ),
         T.clearfix()
+      )
+    )
+  );
+
+  return result;
+};
+
+ts.view.status_updater = function (){
+  if( ts.view.status_updater.result ){ return ts.view.status_updater.result; }
+
+  var result = ts.view.status_updater.result = K.displayed_when_value(ts.model, 'current_page', function(val){ return val === 'home'; },
+    K.enterable(ts.model.runner('update_status'),
+      T.div({'id':'status_updater'},
+        T.div({'id':'status_submitter'}, T.input({'type':'submit', 'value':'Update!', 'onclick':ts.model.runner('update_status')})),
+        T.div({'id':'status_prompt'}, 'What\'s shakin?'),
+        T.div({'id':'new_status_holder'},
+          K.pubsub_input(ts.model, 'new_status',
+            T.textarea({'id':'status_field'})
+          )
+        )
       )
     )
   );
@@ -249,7 +277,7 @@ ts.view.statuses = function (){
         }
       ),
       K.visible_when_value(ts.model, ['loading', 'statuses'], function(loading, statuses){ return !loading && !statuses.length; },
-        T.div({'id':'no_tweets'},
+        T.div({'id':'no_statuses'},
           'Sorry, no statuses here!'
         )
       )
@@ -289,7 +317,7 @@ ts.api = function (method, command, args, success_callback, failure_callback){
   }
   $.ajax({
     'url' : 'proxy',
-    'method' : method,
+    'type' : method,
     'data' : Q.extend(args,{
       'command':'/1/'+command+'.json',
       'username':ts.model.get('username'),

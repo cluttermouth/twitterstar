@@ -6,7 +6,7 @@ body{
   overflow-y: scroll;
 }
 
-#header, #sign_in{
+#header, #sign_in, #status_updater{
   background-color: #8BAABC;
   padding: 1em;
   color: white;
@@ -44,7 +44,27 @@ body{
   margin-left: 1em;
 }
 
-#no_tweets {
+#status_updater{
+  margin-top: 1em;
+}
+
+#status_prompt{
+  float: left;
+}
+
+#status_field{
+  width: 100%;
+}
+
+#new_status_holder{
+  margin: 0em 10em;
+}
+
+#status_submitter{
+  float: right;
+}
+
+#no_statuses {
   background-color: #FEAFEA;
   margin: 1em;
   padding: 1em;
