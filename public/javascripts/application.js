@@ -92,7 +92,8 @@ ts.model = (function (){
   };
 
   seed.show_my_profile = function(){
-    proxy.set('current_page', 'profile '+proxy.get('username'));
+    proxy.set('current_page', 'profile');
+    proxy.set('current_profile', proxy.get('username'));
   };
 
   seed.show_profile = function(username){
@@ -198,7 +199,7 @@ ts.view.header = function (){
       K.visible_when(ts.model, 'loading', function(value){ return value === true; },
         T.img({'id':'loading', 'src':'/images/loader.gif'})
       ),
-      'Welcome, ',K.subscribing_container(ts.model, 'username', T.span()),'!'
+          'Welcome, ',K.subscribing_container(ts.model, 'username', T.span({'onclick':function(){alert('asdf');ts.model.runner('show_my_profile')();}})),'!'
     )
   );
 
