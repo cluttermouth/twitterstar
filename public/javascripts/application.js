@@ -6,6 +6,13 @@ very simple proxy.  The client side uses a pub-sub class I wrote once (Q.proxy)
 to tie changes in the model to updates in the view.  It also uses a DOM
 generation library I wrote called Dominate (T.div, etc).
 
+Once you're logged in, you can do cool stuff like modify the model and watch it
+update the view in real time.  Try:
+  ts.model.set('is_signed_in', false);
+This will put some app-level assumptions in jeapordy, so you'll have to set it
+to true again before going on, but it demonstrates the active attention that
+the element widgets are paying to the model.
+
 Some known limitations to this implementation:
 - DOM manufacturing in JavaScript can be quite slow
 - I'm triggering full refreshes of the 'statuses' div on update
@@ -19,7 +26,9 @@ implemented here, but what a conversation starter
 
 // Define the application namespace
 var ts = {};
-
+ts.constants = {
+  'status_check_interval' : 60000
+};
 
 // Model
 
@@ -53,15 +62,17 @@ ts.model = (function (){
   seed.init = function (){
     if(proxy.get('is_signed_in')){
       proxy.set('current_page', 'home');
-      seed.check_statuses();
+      proxy.run('check_statuses');
     }
-    setInterval(proxy.runner('check_statuses'), 6000);
+    setInterval(proxy.runner('check_statuses'), ts.constants.status_check_interval);
   };
 
   seed.sign_in = function (){
     ts.api('statuses/home_timeline', function (response){
       proxy.set('sign_in_failed', false);
       proxy.set('is_signed_in', true);
+      proxy.set('current_page', 'home');
+      proxy.run('check_statuses');
     }, function(response){
       proxy.set('sign_in_failed', true);
     });
@@ -81,6 +92,7 @@ ts.model = (function (){
       return;
     }
     ts.api(call, function (response){
+      if( ! Q.type_of(response, 'array') ){ Q.error('Empty response?'); return; }
       proxy.set('statuses', response);
       if(success_callback){
         success_callback(response);
