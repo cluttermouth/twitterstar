@@ -15,11 +15,20 @@ the element widgets are paying to the model.
 
 Some known limitations to this implementation:
 - DOM manufacturing in JavaScript can be quite slow
-- I'm triggering full refreshes of the 'statuses' div on update
+- I'm triggering full refreshes of the 'statuses' div on update, rather than
+smartly shuffling the new ones in the right places
 - In keeping with the client-side approach, I'm storing user credentials in
-cookies, though is insecure
+cookies, and then SENDING THEM IN PLAINTEXT to the server.  This is crazy
+insecure.
 - this home-grown framework is definitely overkill for the features I've
 implemented here, but what a conversation starter
+
+todo:
+- error checking for signin attempts
+- error checking for privacy of profiles the user visits
+- implement suggestions from character counting faq
+- public timeline
+- make a 'status_are_stale' flag that hides statuses between pages
 
 */
 
@@ -58,6 +67,10 @@ ts.model = (function (){
   seed.set_is_signed_in = function (input){
     $.cookieJSON('is_signed_in', input);
   };
+  seed.set_current_page = function(input){
+    seed.current_page = input;
+    proxy.run('check_statuses');
+  }
 
   seed.init = function (){
     if(proxy.get('is_signed_in')){
@@ -68,7 +81,7 @@ ts.model = (function (){
   };
 
   seed.sign_in = function (){
-    ts.api('statuses/home_timeline', function (response){
+    ts.api('GET', 'statuses/home_timeline', function (response){
       proxy.set('sign_in_failed', false);
       proxy.set('is_signed_in', true);
       proxy.set('current_page', 'home');
@@ -83,7 +96,8 @@ ts.model = (function (){
   };
 
   seed.show_profile = function(username){
-    proxy.set('current_page', 'profile '+username);
+    proxy.set('current_profile', username);
+    proxy.set('current_page', 'profile');
   };
 
   seed.sign_out = function (){
@@ -93,13 +107,16 @@ ts.model = (function (){
   };
 
   seed.check_statuses = function (success_callback, failure_callback){
-    var call;
-    if( proxy.get('current_page') === 'home' ){
+    var call, args = {}, current_page = proxy.get('current_page'), method = 'GET';
+    if( current_page === 'home' ){
       call = 'statuses/home_timeline';
+    }else if( current_page === 'profile' ){
+      call = 'statuses/user_timeline';
+      args = {'id':proxy.get('current_profile')};
     }else{
       return;
     }
-    ts.api(call, function (response){
+    ts.api(method, call, args, function (response){
       if( ! Q.type_of(response, 'array') ){ Q.error('Empty response?'); return; }
       proxy.set('statuses', response);
       if(success_callback){
@@ -175,7 +192,7 @@ ts.view.header = function (){
       T.div({'class':'nav_link', 'onclick':ts.model.runner('show_my_profile')},
         'Profile'
       ),
-      T.div({'class':'nav_link', 'onclick':ts.controller.runner('on_click_home')},
+        T.div({'class':'nav_link', 'onclick':ts.model.setter('current_page', 'home')},
         'Home'
       ),
       K.visible_when(ts.model, 'loading', function(value){ return value === true; },
@@ -209,7 +226,7 @@ ts.view.status = function (status){
   var result = T.div({'class':'status'},
     T.img({'class':'status_profile_image', 'src':status.user.profile_image_url}),
     T.div({'class':'status_body'},
-      T.span({'class':'status_username'}, status.user.name),
+      T.span({'class':'status_username', 'onclick':ts.model.runner('show_profile', [status.user.id])}, status.user.screen_name),
       status.text
     ),
     T.clearfix()
@@ -221,25 +238,12 @@ ts.view.status.results = {};
 
 
 
-ts.controller = (function(){
-  var seed = {};
-  var proxy = Q.proxy(seed);
-
-  seed.on_click_home = function(){
-    ts.model.run('check_home_timeline');
-    ts.model.set('home_timeline');
-  };
-
-  return proxy;
-}());
-
-
 
 
 
 // api wrapper
 
-ts.api = function (command, args, success_callback, failure_callback){
+ts.api = function (method, command, args, success_callback, failure_callback){
   if(Q.type_of(args, 'function')){ // allows you to leave off the args parameter, like the $.post call does
     failure_callback = success_callback;
     success_callback = args;
@@ -247,12 +251,12 @@ ts.api = function (command, args, success_callback, failure_callback){
   }
   $.ajax({
     'url' : 'proxy',
-    'type' : 'POST',
-    'data' : {
+    'method' : method,
+    'data' : Q.extend(args,{
       'command':'/1/'+command+'.json',
       'username':ts.model.get('username'),
       'password':ts.model.get('password')
-    },
+    }),
     'success' : success_callback,
     'failure' : failure_callback,
     'dataType' : 'json'
