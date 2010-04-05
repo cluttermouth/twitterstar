@@ -90,11 +90,18 @@
     return container;
   };
 
-  K.visible_when = function(proxy, key, condition, element){
+  K.visible_when_value = function(proxy, keys, condition, element){
+    keys = Q.pluralized(keys);
     var jq_element = $(element), am_hiding = false;
     var previous_state = jq_element.css('visiblity');
     var toggle = function(){
-      if(condition( proxy.get(key) )){
+      if(keys.length === 2){
+        var a = 3;
+      }
+      var vals = Q.results(keys, function(which, key){
+        return proxy.get(key);
+      });
+      if( condition.apply({}, vals) ){
         jq_element.css('visibility', previous_state);
         am_hiding = false;
       }else if(! am_hiding){
@@ -103,12 +110,14 @@
         am_hiding = true;
       }
     };
-    proxy.subscribe('did_change '+key, toggle);
+    Q.each(keys, function(which, key){
+      proxy.subscribe('did_change '+key, toggle);
+    });
     toggle();
     return element;
   };
 
-  K.displayed_when = function(proxy, key, condition, element){
+  K.displayed_when_value = function(proxy, key, condition, element){
     var jq_element = $(element), am_hiding = false;
     var previous_state = jq_element.css('visiblity');
     var toggle = function(){

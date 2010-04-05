@@ -1,10 +1,33 @@
-#header, #sign_in{
-  background-color: #ABCABC;
-  padding: 1em;
+html{
+  background-color: lightBlue;
 }
 
-#loading{
+body{
+  overflow-y: scroll;
+}
+
+#header, #sign_in{
+  background-color: #8BAABC;
+  padding: 1em;
+  color: white;
+}
+
+#header a{
+  color: white;
+  text-decoration: none;
+  text-transform: uppercase;
+  text-size: .95em;
+  letter-spacing: 0.07em;
   margin-right: 1em;
+}
+
+#app_loading{
+  margin-right: 1em;
+}
+
+#sign_in_loading{
+  margin-right: 1em;
+  float: left;
 }
 
 .sign_in_input {
@@ -12,15 +35,30 @@
   margin-right: 2em;
 }
 
+#sign_in_failed {
+  color: red;
+}
+
 .nav_link {
   float: right;
   margin-left: 1em;
 }
 
-.status{
-  background-color: #EEFEEF;
+#no_tweets {
+  background-color: #FEAFEA;
   margin: 1em;
   padding: 1em;
+}
+
+.status{
+  background-color: #CEFECF;
+  margin: 1em;
+  padding: 1em;
+  border: 1px solid #D4D9DA;
+}
+
+.status a{
+  color: blue;
 }
 
 .status_profile_image{

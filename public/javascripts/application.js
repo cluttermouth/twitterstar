@@ -7,11 +7,30 @@ to tie changes in the model to updates in the view.  It also uses a DOM
 generation library I wrote called Dominate (T.div, etc).
 
 Once you're logged in, you can do cool stuff like modify the model and watch it
-update the view in real time.  Try:
-  ts.model.set('is_signed_in', false);
+update the view in real time.  Try this in firebug:
+  ts.model.set('loading', true);
+or:
+  ts.model.run('check_statuses');
+or:
+  ts.model.set('current_profile', 1183041);
+  ts.model.set('current_page', 'profile');
+or:
+  ts.model.set('statuses', [{
+    "user":{
+      "screen_name":"adage",
+      "id":11630327233,
+      "profile_image_url":"http://a3.twimg.com/profile_images/56448039/adage_logo_for_twitter_v3_normal.jpg"
+    }
+    "created_at":"Mon Apr 05 07:27:52 +0000 2010",
+    "text":"Wow, what a cool observer model!"
+  }]);
+
 This will put some app-level assumptions in jeapordy, so you'll have to set it
 to true again before going on, but it demonstrates the active attention that
 the element widgets are paying to the model.
+
+Tested in Firefox 3.5 on and Chrome mac.
+
 
 Some known limitations to this implementation:
 - DOM manufacturing in JavaScript can be quite slow
@@ -22,6 +41,8 @@ cookies, and then SENDING THEM IN PLAINTEXT to the server.  This is crazy
 insecure.
 - this home-grown framework is definitely overkill for the features I've
 implemented here, but what a conversation starter
+- I haven't used a very elaborate event queue yet for the asynchronous parts,
+so having a lot of requests firing off will behave unpredictably
 
 todo:
 - error checking for signin attempts
@@ -69,24 +90,31 @@ ts.model = (function (){
   };
   seed.set_current_page = function(input){
     seed.current_page = input;
-    proxy.run('check_statuses');
-  }
+    proxy.set('loading', true);
+    proxy.run('check_statuses', [function(){
+      proxy.set('loading', false);
+    }, function(){
+      proxy.set('loading', false);
+    }]);
+  };
 
   seed.init = function (){
     if(proxy.get('is_signed_in')){
       proxy.set('current_page', 'home');
-      proxy.run('check_statuses');
     }
     setInterval(proxy.runner('check_statuses'), ts.constants.status_check_interval);
   };
 
   seed.sign_in = function (){
+    ts.model.set('loading', true);
     ts.api('GET', 'statuses/home_timeline', function (response){
       proxy.set('sign_in_failed', false);
       proxy.set('is_signed_in', true);
       proxy.set('current_page', 'home');
       proxy.run('check_statuses');
+      ts.model.set('loading', false);
     }, function(response){
+      ts.model.set('loading', false);
       proxy.set('sign_in_failed', true);
     });
   };
@@ -153,9 +181,12 @@ ts.view.main = function (){
 ts.view.sign_in = function (){
   if( ts.view.sign_in.result ){ return ts.view.sign_in.result; }
 
-  var result = ts.view.sign_in.result = K.displayed_when(ts.model, 'is_signed_in', function(val){ return val !== true; },
+  var result = ts.view.sign_in.result = K.displayed_when_value(ts.model, 'is_signed_in', function(val){ return val !== true; },
     K.enterable(ts.model.runner('sign_in'),
       T.div({'id':'sign_in'},
+        K.visible_when_value(ts.model, 'loading', function(value){ return value === true; },
+          T.img({'id':'sign_in_loading', 'src':'/images/loader.gif'})
+        ),
         T.div({'class':'sign_in_input'},
           T.label({'for':'username'}, 'Username: '),
           K.pubsub_input(ts.model, 'username',
@@ -171,8 +202,8 @@ ts.view.sign_in = function (){
         T.div({'class':'sign_in_input'},
           T.input({'type':'submit', 'value':'Sign in', 'onclick':ts.model.runner('sign_in')})
         ),
-        K.visible_when(ts.model, 'sign_in_failed', function(val){ return val === true; },
-          T.div({'id':'sign_in_failed'}, 'Sorry, try again')
+        K.visible_when_value(ts.model, 'sign_in_failed', function(val){ return val === true; },
+          T.div({'id':'sign_in_failed'}, 'Sorry, bad combo - try again')
         ),
         T.clearfix()
       )
@@ -185,21 +216,21 @@ ts.view.sign_in = function (){
 ts.view.header = function (){
   if( ts.view.header.result ){ return ts.view.header.result; }
 
-  var result = ts.view.header.result = K.displayed_when(ts.model, 'is_signed_in', function(val){ return val === true; },
+  var result = ts.view.header.result = K.displayed_when_value(ts.model, 'is_signed_in', function(val){ return val === true; },
     T.div({'id':'header'},
       T.div({'class':'nav_link', 'onclick':ts.model.runner('sign_out')},
-        'Sign out'
+        T.a({'href':'#'}, 'Sign out')
       ),
       T.div({'class':'nav_link', 'onclick':ts.model.runner('show_my_profile')},
-        'Profile'
+        T.a({'href':'#'}, 'Profile')
       ),
         T.div({'class':'nav_link', 'onclick':ts.model.setter('current_page', 'home')},
-        'Home'
+        T.a({'href':'#'}, 'Home')
       ),
-      K.visible_when(ts.model, 'loading', function(value){ return value === true; },
-        T.img({'id':'loading', 'src':'/images/loader.gif'})
+      K.visible_when_value(ts.model, 'loading', function(value){ return value === true; },
+        T.img({'id':'app_loading', 'src':'/images/loader.gif'})
       ),
-          'Welcome, ',K.subscribing_container(ts.model, 'username', T.span({'onclick':function(){alert('asdf');ts.model.runner('show_my_profile')();}})),'!'
+      'Welcome, ',K.subscribing_container(ts.model, 'username', T.span({'onclick':ts.model.runner('show_my_profile')})),'!'
     )
   );
 
@@ -210,12 +241,17 @@ ts.view.header = function (){
 ts.view.statuses = function (){
   if( ts.view.statuses.result ){ return ts.view.statuses.result; }
 
-  var result = ts.view.statuses.result = K.displayed_when(ts.model, 'is_signed_in', function(val){ return val === true; },
+  var result = ts.view.statuses.result = K.displayed_when_value(ts.model, 'is_signed_in', function(val){ return val === true; },
     T.div({'class':'statuses'},
       K.subscribing_list(ts.model, 'statuses', T.ul(),
         function (which, status){
           return ts.view.status(status);
         }
+      ),
+      K.visible_when_value(ts.model, ['loading', 'statuses'], function(loading, statuses){ return !loading && !statuses.length; },
+        T.div({'id':'no_tweets'},
+          'Sorry, no statuses here!'
+        )
       )
     )
   );
@@ -224,10 +260,11 @@ ts.view.statuses = function (){
 };
 
 ts.view.status = function (status){
+  var show_profile_runner = ts.model.runner('show_profile', [status.user.id]);
   var result = T.div({'class':'status'},
-    T.img({'class':'status_profile_image', 'src':status.user.profile_image_url}),
+    T.img({'class':'status_profile_image', 'src':status.user.profile_image_url, 'onclick':show_profile_runner}),
     T.div({'class':'status_body'},
-      T.span({'class':'status_username', 'onclick':ts.model.runner('show_profile', [status.user.id])}, status.user.screen_name),
+      T.span({'class':'status_username', 'onclick':show_profile_runner}, T.a({'href':'#'},status.user.screen_name)),
       status.text
     ),
     T.clearfix()
@@ -259,7 +296,7 @@ ts.api = function (method, command, args, success_callback, failure_callback){
       'password':ts.model.get('password')
     }),
     'success' : success_callback,
-    'failure' : failure_callback,
+    'error' : failure_callback,
     'dataType' : 'json'
   });
 };

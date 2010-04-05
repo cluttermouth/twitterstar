@@ -506,7 +506,7 @@ if( QOMBAT === undefined ){
 
   /*
    * @options may include:
-   *   numeric: an indicator of what elements to cover and if they are numeric, in what order.  defaults to 'include'.  valid options are:
+   *   numeric: an indicator of what elements to cover and if they are numeric, in what order.  defaults to 'include' for object-likes and 'ascend' for array-likes.  valid options are:
    *     'skip' (named only)
    *     'include' (named and numeric)
    *     'ascend' (numeric only ascending)
@@ -889,7 +889,7 @@ if( QOMBAT === undefined ){
   Q.error = function( message ){ // output error and stop page
     Q.log(Q.call_stack());
     message = 'Error: ' + message;
-    alert(message);
+    //alert(message);
     throw message;
   };
 
