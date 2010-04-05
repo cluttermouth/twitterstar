@@ -78,6 +78,14 @@ ts.model = (function (){
     });
   };
 
+  seed.show_my_profile = function(){
+    proxy.set('current_page', 'profile '+proxy.get('username'));
+  };
+
+  seed.show_profile = function(username){
+    proxy.set('current_page', 'profile '+username);
+  };
+
   seed.sign_out = function (){
     proxy.set('username', null);
     proxy.set('password', null);
@@ -164,7 +172,7 @@ ts.view.header = function (){
       T.div({'class':'nav_link', 'onclick':ts.model.runner('sign_out')},
         'Sign out'
       ),
-      T.div({'class':'nav_link', 'onclick':ts.model.runner('show_profile')},
+      T.div({'class':'nav_link', 'onclick':ts.model.runner('show_my_profile')},
         'Profile'
       ),
       T.div({'class':'nav_link', 'onclick':ts.controller.runner('on_click_home')},
@@ -198,9 +206,7 @@ ts.view.statuses = function (){
 };
 
 ts.view.status = function (status){
-  if( ts.view.status.results[status.id] ){ return ts.view.status.results[status.id]; }
-
-  var result = ts.view.status.results[status.id] = T.div({'class':'status'},
+  var result = T.div({'class':'status'},
     T.img({'class':'status_profile_image', 'src':status.user.profile_image_url}),
     T.div({'class':'status_body'},
       T.span({'class':'status_username'}, status.user.name),
