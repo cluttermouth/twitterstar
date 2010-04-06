@@ -119,9 +119,14 @@ ts.model = (function (){
   };
 
   seed.update_status = function(){
+    if( proxy.get('updating_status') ){ return; }
+    proxy.set('updating_status', true);
     ts.api('POST', 'statuses/update', {'status':proxy.get('new_status')}, function (response){
+      proxy.set('new_status', '');
+      proxy.set('updating_status', false);
       seed.check_statuses();
     },function (response){
+      proxy.set('updating_status', false);
       alert('Error posting status');
     });
   };
@@ -271,12 +276,14 @@ ts.view.statuses = function (){
 
   var result = ts.view.statuses.result = K.displayed_when_value(ts.model, 'is_signed_in', function(val){ return val === true; },
     T.div({'class':'statuses'},
-      K.subscribing_list(ts.model, 'statuses', T.ul(),
-        function (which, status){
-          return ts.view.status(status);
-        }
+      K.displayed_when_value(ts.model, ['loading', 'statuses'], function(loading, statuses){ return !loading && statuses.length; },
+        K.subscribing_list(ts.model, 'statuses', T.ul(),
+          function (which, status){
+            return ts.view.status(status);
+          }
+        )
       ),
-      K.visible_when_value(ts.model, ['loading', 'statuses'], function(loading, statuses){ return !loading && !statuses.length; },
+      K.displayed_when_value(ts.model, ['loading', 'statuses'], function(loading, statuses){ return !loading && !statuses.length; },
         T.div({'id':'no_statuses'},
           'Sorry, no statuses here!'
         )

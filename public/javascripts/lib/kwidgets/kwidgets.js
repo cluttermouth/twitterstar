@@ -38,7 +38,7 @@
 
 
 
-  //binds the callback to an enter keypress
+  // binds the callback to an enter keypress on all input elements
   K.enterable = function(callback, root_element){
     $(root_element).delegate('*', 'keydown', function(event){
       if(event.keyCode === Q.keycodes.enter){
@@ -48,6 +48,11 @@
     return root_element;
   };
 
+  // inserts the value of some property in a proxy object and updates it as that value changes
+  // accepts:
+  //   - proxy: a qombat proxy object
+  //   - key: the key to register listening for
+  //   - container: the element to populate with the value from proxy.get(key)
   K.subscribing_container = function(proxy, key, container){
     jq_container = $(container);
     proxy.subscribe('did_change '+key, function(){
@@ -77,6 +82,15 @@
     return field;
   }
 
+  // accepts
+  //   - proxy: a qombat proxy object
+  //   - key: a key for proxy that holds an array
+  //   - container: an element to hold all the rendered items
+  //   - item_template: a function that generates a dom node from an element of an array
+  //     accepts: index, and one element of the array
+  //     returns: a generated dom node
+  // returns
+  //   - the same element, with the auto-populating functionality enabled
   K.subscribing_list = function(proxy, key, container, item_template){
     var populate_items = function (){
       var results = [];
@@ -90,14 +104,18 @@
     return container;
   };
 
+  // accepts
+  //   - a qombat proxy object
+  //   - a key (or list of keys) to listen to, and
+  //   - condition: a function to determine whether or not to reveal the element.  it will be passed the values at locations of [keys] (or key) at change time for any one of them
+  //   - an element that will be obscured or not
+  // returns
+  //   - the same element, with the hiding functionality enabled
   K.visible_when_value = function(proxy, keys, condition, element){
     keys = Q.pluralized(keys);
     var jq_element = $(element), am_hiding = false;
     var previous_state = jq_element.css('visiblity');
     var toggle = function(){
-      if(keys.length === 2){
-        var a = 3;
-      }
       var vals = Q.results(keys, function(which, key){
         return proxy.get(key);
       });
@@ -117,11 +135,27 @@
     return element;
   };
 
-  K.displayed_when_value = function(proxy, key, condition, element){
+
+  // accepts
+  //   - a qombat proxy object
+  //   - a key (or list of keys) to listen to
+  //   - condition: a function to determine whether or not to reveal the element.  it will be passed the values at locations of [keys] (or key) at change time for any one of them
+  //   - an element that will be obscured or not
+  // returns
+  //   - the same element, with the hiding functionality enabled
+  // todo: factor out commonality with this and visible_when_value
+  K.displayed_when_value = function(proxy, keys, condition, element){
+    keys = Q.pluralized(keys);
     var jq_element = $(element), am_hiding = false;
     var previous_state = jq_element.css('visiblity');
     var toggle = function(){
-      if(condition( proxy.get(key) )){
+      if(keys.length === 2){
+        var a = 3;
+      }
+      var vals = Q.results(keys, function(which, key){
+        return proxy.get(key);
+      });
+      if(condition.apply({}, vals )){
         jq_element.css('display', previous_state);
         am_hiding = false;
       }else if(! am_hiding){
@@ -130,7 +164,9 @@
         am_hiding = true;
       }
     };
-    proxy.subscribe('did_change '+key, toggle);
+    Q.each(keys, function(which, key){
+      proxy.subscribe('did_change '+key, toggle);
+    });
     toggle();
     return element;
   };
