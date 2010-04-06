@@ -119,7 +119,7 @@ ts.model = (function (){
   };
 
   seed.update_status = function(){
-    if( proxy.get('updating_status') ){ return; }
+    if( ! proxy.get('new_status') || proxy.get('updating_status') ){ return; }
     proxy.set('updating_status', true);
     ts.api('POST', 'statuses/update', {'status':proxy.get('new_status')}, function (response){
       proxy.set('new_status', '');
