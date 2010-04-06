@@ -21,7 +21,8 @@ body{
   margin-right: 1em;
 }
 
-#app_loading{
+.app_loading{
+  float: left;
   margin-right: 1em;
 }
 

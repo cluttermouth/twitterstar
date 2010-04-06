@@ -1,34 +1,36 @@
 /******************************************************************************
 
-I drafted this application up because I thought you might find a fully client-
-side architecture interesting.  The server is a nearly empty rails app with a
-very simple proxy.  The client side uses a pub-sub class I wrote once (Q.proxy)
-to tie changes in the model to updates in the view.  It also uses a DOM
-generation library I wrote called Dominate (T.div, etc).
+I drafted this application to demonstrate a nearly fully client-side app using
+the observer pattern.  The server is a nearly empty rails app with a simple
+proxy.  The client side uses a pub-sub class I wrote once (Q.proxy) to tie
+changes in the model to updates in the view.  It also uses a DOM generation
+library I wrote called Dominate (T.div, etc).
 
-Once you're logged in, you can do cool stuff like modify the model and watch it
-update the view in real time.  Try this in firebug:
-  ts.model.set('loading', true);
-or:
-  ts.model.run('check_statuses');
-or:
-  ts.model.set('current_profile', 1183041);
-  ts.model.set('current_page', 'profile');
-or:
-  ts.model.set('statuses', [{
-    "user":{
-      "screen_name":"adage",
-      "id":11630327233,
-      "profile_image_url":"http://a3.twimg.com/profile_images/56448039/adage_logo_for_twitter_v3_normal.jpg"
-    }
-    "text":"Wow, what a cool observer model!"
-  }]);
+A few cool examples:
 
-This will put some app-level assumptions in jeapordy, so you'll have to set it
-to true again before going on, but it demonstrates the active attention that
-the element widgets are paying to the model.
+// Once you're logged in, you can do cool stuff like modify the model and watch it update the view in real time.  Try this in firebug:
+ts.model.run('check_statuses'); //only interesting if you have a new status posted
 
-Tested in Firefox 3.5 on and Chrome mac.
+// or
+ts.model.set('loading', true);
+setTimeout(ts.model.setter('loading', false), 500);
+
+// or
+ts.model.set('current_profile', 1183041);
+ts.model.set('current_page', 'profile');
+
+// or
+ts.model.set('statuses', [{
+  "user":{
+    "screen_name":"adage",
+    "id":11630327233,
+    "profile_image_url":"http://a3.twimg.com/profile_images/56448039/adage_logo_for_twitter_v3_normal.jpg"
+  },
+  "text":"Wow, what a cool observer pattern!"
+}]);
+
+
+Tested on a mac in Firefox 3.5.9, on and Chrome 5.0.342.7, and Safari 4.0.5.
 
 
 Some known limitations to this implementation:
@@ -40,15 +42,12 @@ cookies, and then SENDING THEM IN PLAINTEXT to the server.  This is crazy
 insecure.
 - this home-grown framework is definitely overkill for the features I've
 implemented here, but what a conversation starter
-- I haven't used a very elaborate event queue yet for the asynchronous parts,
-so having a lot of requests firing off will behave unpredictably
 
 todo:
-- error checking for signin attempts
+- investigate all possible error responses the server might send back
 - error checking for privacy of profiles the user visits
 - implement suggestions from character counting faq
 - public timeline
-- make a 'status_are_stale' flag that hides statuses between pages
 
 */
 
@@ -111,7 +110,6 @@ ts.model = (function (){
       proxy.set('is_signed_in', true);
       proxy.set('current_page', 'home');
       proxy.run('check_statuses');
-      ts.model.set('loading', false);
     }, function(response){
       ts.model.set('loading', false);
       proxy.set('sign_in_failed', true);
@@ -197,9 +195,7 @@ ts.view.sign_in = function (){
   var result = ts.view.sign_in.result = K.displayed_when_value(ts.model, 'is_signed_in', function(val){ return val !== true; },
     K.enterable(ts.model.runner('sign_in'),
       T.div({'id':'sign_in'},
-        K.visible_when_value(ts.model, 'loading', function(value){ return value === true; },
-          T.img({'id':'sign_in_loading', 'src':'/images/loader.gif'})
-        ),
+        ts.view.app_loading(),
         T.div({'class':'sign_in_input'},
           T.label({'for':'username'}, 'Username: '),
           K.pubsub_input(ts.model, 'username',
@@ -229,14 +225,14 @@ ts.view.sign_in = function (){
 ts.view.status_updater = function (){
   if( ts.view.status_updater.result ){ return ts.view.status_updater.result; }
 
-  var result = ts.view.status_updater.result = K.displayed_when_value(ts.model, 'current_page', function(val){ return val === 'home'; },
+  var result = ts.view.status_updater.result = K.displayed_when_value(ts.model, ['current_page', 'is_signed_in'], function(current_page, is_signed_in){ return current_page === 'home' && is_signed_in; },
     K.enterable(ts.model.runner('update_status'),
       T.div({'id':'status_updater'},
         T.div({'id':'status_submitter'}, T.input({'type':'submit', 'value':'Update!', 'onclick':ts.model.runner('update_status')})),
         T.div({'id':'status_prompt'}, 'What\'s shakin?'),
         T.div({'id':'new_status_holder'},
           K.pubsub_input(ts.model, 'new_status',
-            T.textarea({'id':'status_field'})
+            T.input({'type':'text','id':'status_field'})
           )
         )
       )
@@ -260,9 +256,7 @@ ts.view.header = function (){
         T.div({'class':'nav_link', 'onclick':ts.model.setter('current_page', 'home')},
         T.a({'href':'#'}, 'Home')
       ),
-      K.visible_when_value(ts.model, 'loading', function(value){ return value === true; },
-        T.img({'id':'app_loading', 'src':'/images/loader.gif'})
-      ),
+      ts.view.app_loading(),
       'Welcome, ',K.subscribing_container(ts.model, 'username', T.span({'onclick':ts.model.runner('show_my_profile')})),'!'
     )
   );
@@ -270,6 +264,16 @@ ts.view.header = function (){
   return result;
 };
 
+ts.view.app_loading = function(){
+  return T.div({'class':'app_loading'},
+    K.displayed_when_value(ts.model, 'loading', function(value){ return value === true; },
+      T.img({'src':'/images/loader.gif'})
+    ),
+    K.displayed_when_value(ts.model, 'loading', function(value){ return value !== true; },
+      T.img({'src':'/images/nonloader.gif'})
+    )
+  );
+};
 
 ts.view.statuses = function (){
   if( ts.view.statuses.result ){ return ts.view.statuses.result; }

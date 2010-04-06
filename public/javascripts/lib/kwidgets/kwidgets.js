@@ -54,7 +54,7 @@
   //   - key: the key to register listening for
   //   - container: the element to populate with the value from proxy.get(key)
   K.subscribing_container = function(proxy, key, container){
-    jq_container = $(container);
+    var jq_container = $(container);
     proxy.subscribe('did_change '+key, function(){
       jq_container.html(proxy.get(key));
     });
@@ -80,7 +80,7 @@
       }
     });
     return field;
-  }
+  };
 
   // accepts
   //   - proxy: a qombat proxy object
@@ -96,7 +96,7 @@
       var results = [];
       Q.each(proxy.get(key), function (which, item){
         results.push(item_template(which, item));
-      })
+      });
       $(container).html(results);
     };
     proxy.subscribe('did_set '+key, populate_items);
@@ -149,9 +149,6 @@
     var jq_element = $(element), am_hiding = false;
     var previous_state = jq_element.css('visiblity');
     var toggle = function(){
-      if(keys.length === 2){
-        var a = 3;
-      }
       var vals = Q.results(keys, function(which, key){
         return proxy.get(key);
       });
@@ -192,4 +189,4 @@
   };
   */
 
-}())
+}());
